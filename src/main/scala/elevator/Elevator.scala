@@ -20,19 +20,11 @@ class Elevator(minFloor: Int, maxFloor: Int, maxWeightLbs: Int) extends Actor wi
   // max heap
   private val downQueue: mutable.PriorityQueue[Int] = mutable.PriorityQueue.empty[Int](MaxOrdering)
 
-
-  //  val queue: mutable.LinkedHashSet[Int] = mutable.LinkedHashSet.empty[Int]
-
   var currentFloor: Int = 1
   var currentWeightLbs: Int = 0
 
   override def preStart(): Unit = {
     become(idle)
-    timers.startPeriodicTimer("StatusUpdate", GetStatus, 5 second)
-  }
-
-  override def postStop(): Unit = {
-    timers.cancelAll()
   }
 
   val receive: Receive = {
@@ -40,7 +32,7 @@ class Elevator(minFloor: Int, maxFloor: Int, maxWeightLbs: Int) extends Actor wi
   }
 
   val idle: Receive = {
-    case GetStatus => Status(Idle, currentFloor, currentFloor, upQueue.length + downQueue.length)
+    case GetStatus => sender() ! Status(Idle, currentFloor, currentFloor, upQueue.length + downQueue.length)
     case MoveRequest(floor) =>
       if (floor < currentFloor) {
         downQueue += floor
@@ -54,33 +46,6 @@ class Elevator(minFloor: Int, maxFloor: Int, maxWeightLbs: Int) extends Actor wi
         timers.startSingleTimer("OpenDoors", CloseDoors, 5 second)
         become(openDoors, discardOld = false)
       }
-
-
-    //    case GetStatus => Status(Idle, currentFloor)
-    //    case MoveRequest(floor) =>
-    //      queue += floor
-    //      self ! ProcessRequest
-    //
-    //      if (floor > currentFloor) {
-    //        become(up)
-    //      } else if (floor < currentFloor) {
-    //        become(down)
-    //      } else {
-    //        timers.startSingleTimer("OpenDoors", CloseDoors, 5 second)
-    //        become(openDoors, discardOld = false)
-    //      }
-
-    //      if (floor < currentFloor) {
-    //        downQueue += floor
-    //        minBottomFloor = Some(floor)
-    //        self ! CheckQueue
-    //        become(down)
-    //      } else {
-    //        upQueue += floor
-    //        maxTopFloor = Some(floor)
-    //        self ! CheckQueue
-    //        become(up)
-    //      }
   }
 
   private val sharedUpDown: Receive = {
@@ -99,7 +64,7 @@ class Elevator(minFloor: Int, maxFloor: Int, maxWeightLbs: Int) extends Actor wi
   }
 
   val up: Receive = sharedUpDown orElse {
-    case GetStatus => Status(Up, currentFloor, upQueue.last, upQueue.length + downQueue.length)
+    case GetStatus => sender() ! Status(Up, currentFloor, upQueue.last, upQueue.length + downQueue.length)
     case ProcessRequest =>
       if (upQueue.isEmpty && downQueue.isEmpty) {
         become(idle)
@@ -113,34 +78,6 @@ class Elevator(minFloor: Int, maxFloor: Int, maxWeightLbs: Int) extends Actor wi
         currentFloor += 1
         self ! ProcessRequest
       }
-    //    case MoveRequest(floor) =>
-    //      if (floor < currentFloor) {
-    //        downQueue += floor
-    //        self ! ProcessRequest
-    //      } else if (floor > currentFloor) {
-    //        upQueue += floor
-    //        self ! ProcessRequest
-    //      } else {
-    //        timers.startSingleTimer("OpenDoors", CloseDoors, 5 second)
-    //        become(openDoors, discardOld = false)
-    //      }
-
-    //    case ProcessRequest =>
-    //      if (queue.isEmpty) {
-    //        become(idle)
-    //      } else if (queue.head < currentFloor) {
-    //        self ! ProcessRequest
-    //        become(down)
-    //      } else if (queue.contains(currentFloor)) {
-    //        queue -= currentFloor
-    //        timers.startSingleTimer("OpenDoors", CloseDoors, 5 second)
-    //        become(openDoors, discardOld = false)
-    //      } else {
-    //        currentFloor += 1
-    //        self ! ProcessRequest
-    //      }
-    //    case MoveRequest(floor) => queue += floor
-
   }
 
   val openDoors: Receive = {
@@ -162,7 +99,7 @@ class Elevator(minFloor: Int, maxFloor: Int, maxWeightLbs: Int) extends Actor wi
   }
 
   val down: Receive = sharedUpDown orElse {
-    case GetStatus => Status(Down, currentFloor, downQueue.last, upQueue.length + downQueue.length)
+    case GetStatus => sender() ! Status(Down, currentFloor, downQueue.last, upQueue.length + downQueue.length)
     case ProcessRequest =>
       if (downQueue.isEmpty && upQueue.isEmpty) {
         become(idle)
@@ -176,34 +113,6 @@ class Elevator(minFloor: Int, maxFloor: Int, maxWeightLbs: Int) extends Actor wi
         currentFloor -= 1
         self ! ProcessRequest
       }
-    //    case MoveRequest(floor) =>
-    //      if (floor < currentFloor) {
-    //        downQueue += floor
-    //        self ! ProcessRequest
-    //      } else if (floor > currentFloor) {
-    //        upQueue += floor
-    //        self ! ProcessRequest
-    //      } else {
-    //        timers.startSingleTimer("OpenDoors", CloseDoors, 5 second)
-    //        become(openDoors, discardOld = false)
-    //      }
-
-    //    case GetStatus => Status(Down, currentFloor)
-    //    case ProcessRequest =>
-    //      if (queue.isEmpty) {
-    //        become(idle)
-    //      } else if (queue.head > currentFloor) {
-    //        self ! ProcessRequest
-    //        become(up)
-    //      } else if (queue.contains(currentFloor)) {
-    //        queue -= currentFloor
-    //        timers.startSingleTimer("OpenDoors", CloseDoors, 5 second)
-    //        become(openDoors, discardOld = false)
-    //      } else {
-    //        currentFloor -= 1
-    //        self ! ProcessRequest
-    //      }
-    //    case MoveRequest(floor) => queue += floor
   }
 }
 

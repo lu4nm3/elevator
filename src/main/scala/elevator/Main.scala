@@ -1,20 +1,23 @@
 package elevator
 
 import akka.actor.ActorSystem
-import elevator.api.MoveRequest
 
 object Main {
   def main(args: Array[String]): Unit = {
     val system = ActorSystem.apply("test")
 
-    val elevator = system.actorOf(Elevator.props(1, 199, 500))
+    val numElevators: Int = 4
+    val minFloor: Int = 1
+    val maxFloor: Int = 100
+    val maxWeightLbs: Int = 700
 
-    elevator ! MoveRequest(4)
+
+    val elevators = List.fill(numElevators)(system.actorOf(Elevator.props(minFloor, maxFloor, maxWeightLbs)))
+    val controller = system.actorOf(Controller.props(elevators))
+
 
     while(true){}
 
-    val test = new Test(3)
     println("Hello World!")
-    println(s"times 2 ${test.timeTwo}")
   }
 }
